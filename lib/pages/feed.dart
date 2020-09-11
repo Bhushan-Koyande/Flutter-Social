@@ -148,7 +148,7 @@ class ActivityFeedItem extends StatelessWidget {
             ),
           ),
           leading: CircleAvatar(
-            backgroundImage: CachedNetworkImageProvider(userProfileImg),
+            backgroundImage: NetworkImage(userProfileImg),
           ),
           subtitle: Text(
             timeago.format(timestamp.toDate()),

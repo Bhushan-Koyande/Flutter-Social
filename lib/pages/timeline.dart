@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_social/models/user.dart';
 import 'package:flutter_social/pages/home.dart';
@@ -21,18 +22,43 @@ class _TimeLineState extends State<TimeLine> {
 
   List<Post> posts;
   List<String> followingList;
+  List<UserResult> userResults;
+
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    getTimeLine();
-    getFollowing();
+    initialize();
+  }
+
+  void initialize() async {
+    await getFollowing();
+    await getUsersToFollow();
+    await getTimeLine();
+  }
+
+  getUsersToFollow() async {
+    QuerySnapshot snapshot = await usersRef.getDocuments();
+
+    List<UserResult> userResults = [];
+    snapshot.documents.map((doc){
+      User user = User.fromDocument(doc);
+      final bool isAuthUser = currentUser.id == user.id;
+      final bool isFollowingUser = followingList.contains(user.id);
+      if((! isAuthUser) && (! isFollowingUser)){
+        UserResult userResult = UserResult(user);
+        userResults.add(userResult);
+      }
+    }).toList();
+    setState(() {
+      this.userResults = userResults;
+    });
   }
 
   getFollowing() async {
     QuerySnapshot snapshot = await followingRef
-        .document(currentUser.id)
+        .document(widget.currentUser.id)
         .collection('userFollowing')
         .getDocuments();
     setState(() {
@@ -40,52 +66,49 @@ class _TimeLineState extends State<TimeLine> {
     });
   }
 
-  getTimeLine() async {
-    QuerySnapshot snapshot =await timelineRef
-        .document(widget.currentUser.id)
-        .collection('timelinePosts')
+  Future<void> getTimeLine() async {
+    for(int i = 0; i < followingList.length; i++){
+      await getPostsForTimeline(followingList[i]);
+    }
+  }
+
+  getPostsForTimeline(String followingId) async {
+    QuerySnapshot querySnapshot = await postsRef
+        .document(followingId)
+        .collection('userPosts')
         .orderBy('timestamp', descending: true)
         .getDocuments();
-
-    List<Post> posts = snapshot.documents.map((doc) => Post.fromDocument(doc)).toList();
+    List <Post> followingPosts = querySnapshot.documents.map((doc) => Post.fromDocument(doc)).toList();
+    List<Post> posts = this.posts;
+    if(posts == null) {
+      posts = followingPosts;
+    }else {
+      posts.addAll(followingPosts);
+    }
     setState(() {
       this.posts = posts;
     });
   }
 
   buildTimeLine() {
-    if(posts == null){
+    if(posts == null && userResults == null){
       return circularProgress();
-    }else if(posts.isEmpty){
+    }else if(posts == null){
       return buildUsersToFollow();
     }
+    posts.sort(
+            (a,b){
+              return DateTime.parse(a.timestamp.toString()).toString().compareTo(DateTime.parse(b.timestamp.toString()).toString());
+            }
+    );
+
     return ListView(children: posts);
   }
 
   buildUsersToFollow() {
-    return StreamBuilder(
-      stream: usersRef.orderBy('timestamp', descending: true).limit(20).snapshots(),
-      builder: (context, snapshot) {
-        if(! snapshot.hasData ) {
-          circularProgress();
-        }
-        List<UserResult> userResults = [];
-        snapshot.data.documents.map((doc){
-          User user = User.fromDocument(doc);
-          final bool isAuthUser = currentUser.id == user.id;
-          final bool isFollowingUser = followingList.contains(user.id);
-          if(isAuthUser){
-            return;
-          }else if(isFollowingUser){
-            return;
-          }else{
-            UserResult userResult =UserResult(user);
-            userResults.add(userResult);
-          }
-        });
-        return Container(
-          color: Theme.of(context).accentColor.withOpacity(0.2),
-          child: Column(
+      return Container(
+        color: Theme.of(context).accentColor.withOpacity(0.2),
+        child: Column(
             children: <Widget>[
               Container(
                 padding: EdgeInsets.all(12.0),
@@ -102,12 +125,10 @@ class _TimeLineState extends State<TimeLine> {
                   ],
                 ),
               ),
-              Column(children: userResults),
-            ],
-          ),
-        );
-      },
-    );
+              Column(children: userResults)
+            ]
+        )
+      );
   }
 
   @override

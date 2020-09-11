@@ -134,6 +134,8 @@ class _ProfileState extends State<Profile> {
             doc.reference.delete()
           }
         });
+    // Remove posts from TimeLine
+    //deletePostsFromTimeline();
   }
 
   handleFollowUser() {
@@ -163,6 +165,8 @@ class _ProfileState extends State<Profile> {
           'userProfileImg': currentUser.photoUrl,
           'timestamp': timestamp
         });
+    // Add posts to TimeLine
+    //addPostsToTimeline();
   }
 
   buildProfileHeader() {
@@ -337,4 +341,21 @@ class _ProfileState extends State<Profile> {
       followingCount = snapshot.documents.length;
     });
   }
+
+  void addPostsToTimeline() async {
+    QuerySnapshot postsToAdd = await postsRef.document(widget.profileId).collection('userPosts').getDocuments();
+    postsToAdd.documents.map((doc) {
+      timelineRef.document(currentUser.id).collection('timelinePosts').document(doc.documentID).setData(doc.data);
+    });
+  }
+
+  void deletePostsFromTimeline() async {
+    QuerySnapshot postsToDelete = await timelineRef.document(currentUserId).collection('timelinePosts').where('ownerId', isEqualTo: widget.profileId).getDocuments();
+    postsToDelete.documents.map((doc) {
+      if (doc.exists){
+        doc.reference.delete();
+      }
+    });
+  }
+
 }

@@ -142,9 +142,12 @@ class _HomeState extends State<Home> {
     final GoogleSignInAccount user = googleSignIn.currentUser;
     DocumentSnapshot doc = await usersRef.document(user.id).get();
     if(! doc.exists ){
-      final username = await Navigator.push(context, MaterialPageRoute(
+      String username = await Navigator.push(context, MaterialPageRoute(
           builder: (context) => CreateAccount()
       ));
+      if(username == null){
+        username = user.displayName;
+      }
       usersRef.document(user.id).setData({
         "id": user.id,
         "username": username,

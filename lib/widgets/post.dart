@@ -20,8 +20,9 @@ class Post extends StatefulWidget {
   final String description;
   final String mediaUrl;
   final dynamic likes;
+  final dynamic timestamp;
 
-  Post({this.postId, this.ownerId, this.username, this.location, this.description, this.mediaUrl, this.likes}) ;
+  Post({this.postId, this.ownerId, this.username, this.location, this.description, this.mediaUrl, this.likes, this.timestamp}) ;
 
   factory Post.fromDocument(DocumentSnapshot doc){
     return Post(
@@ -32,6 +33,7 @@ class Post extends StatefulWidget {
       description: doc['description'],
       mediaUrl: doc['mediaUrl'],
       likes: doc['likes'],
+      timestamp: doc['timestamp'],
     );
   }
 
@@ -57,7 +59,8 @@ class Post extends StatefulWidget {
     description: this.description,
     mediaUrl: this.mediaUrl,
     likesCount: getLikesCount(this.likes),
-    likes: this.likes
+    likes: this.likes,
+    timestamp: this.timestamp
   );
 }
 
@@ -72,11 +75,12 @@ class _PostState extends State<Post> {
   final String description;
   final String mediaUrl;
   bool isLiked;
+  final timestamp;
   bool showHeart = false;
   int likesCount;
   Map likes;
 
-  _PostState({this.postId, this.ownerId, this.username, this.location, this.description, this.mediaUrl, this.likesCount, this.likes}) ;
+  _PostState({this.postId, this.ownerId, this.username, this.location, this.description, this.mediaUrl, this.likesCount, this.likes, this.timestamp}) ;
 
   @override
   Widget build(BuildContext context) {
